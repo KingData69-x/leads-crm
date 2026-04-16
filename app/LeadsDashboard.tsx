@@ -28,12 +28,21 @@ export function LeadsDashboard() {
     let cancelled = false;
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from("leads")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (error) throw error;
-        if (!cancelled) setLeads(data as Lead[]);
+        const pageSize = 1000;
+        const all: Lead[] = [];
+        for (let from = 0; ; from += pageSize) {
+          const { data, error } = await supabase
+            .from("leads")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          const batch = (data ?? []) as Lead[];
+          all.push(...batch);
+          if (cancelled) return;
+          setLeads([...all]);
+          if (batch.length < pageSize) break;
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -78,12 +87,16 @@ export function LeadsDashboard() {
     const s: Record<LeadStatus, number> = {
       new: 0,
       called: 0,
+      no_answer: 0,
+      call_later: 0,
+      wrong_number: 0,
+      not_in_service: 0,
       interested: 0,
       not_interested: 0,
       closed: 0,
     };
     leads.forEach((l) => {
-      s[l.status]++;
+      if (s[l.status] !== undefined) s[l.status]++;
     });
     return s;
   }, [leads]);
@@ -162,7 +175,7 @@ export function LeadsDashboard() {
 
       <div className="mx-auto max-w-[1600px] px-6 py-5">
         {/* Stats cards */}
-        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
           {(Object.keys(stats) as LeadStatus[]).map((k) => (
             <button
               key={k}

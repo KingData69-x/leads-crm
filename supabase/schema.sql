@@ -1,6 +1,16 @@
 -- Run this in your Supabase project's SQL Editor
 
-create type lead_status as enum ('new', 'called', 'interested', 'not_interested', 'closed');
+create type lead_status as enum (
+  'new',
+  'called',
+  'no_answer',
+  'call_later',
+  'wrong_number',
+  'not_in_service',
+  'interested',
+  'not_interested',
+  'closed'
+);
 
 create table leads (
   id uuid primary key default gen_random_uuid(),
