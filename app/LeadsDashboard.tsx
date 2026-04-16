@@ -19,6 +19,13 @@ type SortKey =
   | "review_count"
   | "created_at";
 
+function stateOf(city: string | null | undefined): string {
+  if (!city) return "";
+  const parts = city.split(",");
+  if (parts.length < 2) return "";
+  return parts[parts.length - 1].trim().toUpperCase();
+}
+
 export function LeadsDashboard() {
   const supabase = useMemo(() => createClient(), []);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -27,6 +34,7 @@ export function LeadsDashboard() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [stateFilter, setStateFilter] = useState<string>("all");
   const [minRating, setMinRating] = useState<number>(0);
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -70,11 +78,21 @@ export function LeadsDashboard() {
     return Array.from(s).sort();
   }, [leads]);
 
+  const states = useMemo(() => {
+    const s = new Set<string>();
+    leads.forEach((l) => {
+      const st = stateOf(l.city);
+      if (st) s.add(st);
+    });
+    return Array.from(s).sort();
+  }, [leads]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const arr = leads.filter((l) => {
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (categoryFilter !== "all" && l.category !== categoryFilter) return false;
+      if (stateFilter !== "all" && stateOf(l.city) !== stateFilter) return false;
       if (minRating > 0 && (l.rating ?? 0) < minRating) return false;
       if (!q) return true;
       return (
@@ -94,11 +112,11 @@ export function LeadsDashboard() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [leads, search, statusFilter, categoryFilter, minRating, sortKey, sortDir]);
+  }, [leads, search, statusFilter, categoryFilter, stateFilter, minRating, sortKey, sortDir]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, categoryFilter, minRating, sortKey, sortDir, pageSize]);
+  }, [search, statusFilter, categoryFilter, stateFilter, minRating, sortKey, sortDir, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageStart = (page - 1) * pageSize;
@@ -247,6 +265,18 @@ export function LeadsDashboard() {
             {categories.map((c) => (
               <option key={c} value={c}>
                 {c}
+              </option>
+            ))}
+          </select>
+          <select
+            value={stateFilter}
+            onChange={(e) => setStateFilter(e.target.value)}
+            className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm focus:border-zinc-600 focus:outline-none"
+          >
+            <option value="all">All states</option>
+            {states.map((s) => (
+              <option key={s} value={s}>
+                {s}
               </option>
             ))}
           </select>
