@@ -31,6 +31,8 @@ export function LeadsDashboard() {
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(100);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +95,15 @@ export function LeadsDashboard() {
     });
     return arr;
   }, [leads, search, statusFilter, categoryFilter, minRating, sortKey, sortDir]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, categoryFilter, minRating, sortKey, sortDir, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageStart = (page - 1) * pageSize;
+  const pageEnd = Math.min(pageStart + pageSize, filtered.length);
+  const paginated = filtered.slice(pageStart, pageEnd);
 
   const stats = useMemo(() => {
     const s: Record<LeadStatus, number> = {
@@ -294,7 +305,7 @@ export function LeadsDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((l) => (
+                  {paginated.map((l) => (
                     <LeadRow
                       key={l.id}
                       lead={l}
@@ -310,6 +321,64 @@ export function LeadsDashboard() {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {!loading && !error && filtered.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-zinc-400">
+            <div>
+              Showing <span className="text-zinc-200">{pageStart + 1}</span>-
+              <span className="text-zinc-200">{pageEnd}</span> of{" "}
+              <span className="text-zinc-200">{filtered.length}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1.5 text-xs">
+                <span>Per page</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs focus:border-zinc-600 focus:outline-none"
+                >
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
+                  <option value={500}>500</option>
+                </select>
+              </label>
+              <button
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+                className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs hover:bg-zinc-800 disabled:opacity-40"
+              >
+                ««
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs hover:bg-zinc-800 disabled:opacity-40"
+              >
+                ‹ Prev
+              </button>
+              <span className="px-2 text-xs">
+                Page <span className="text-zinc-200">{page}</span> /{" "}
+                <span className="text-zinc-200">{totalPages}</span>
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs hover:bg-zinc-800 disabled:opacity-40"
+              >
+                Next ›
+              </button>
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={page >= totalPages}
+                className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs hover:bg-zinc-800 disabled:opacity-40"
+              >
+                »»
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
