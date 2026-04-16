@@ -10,6 +10,8 @@ type Row = {
   address: string;
   category: string;
   city: string;
+  rating: number | null;
+  review_count: number | null;
 };
 
 function parseCSV(text: string): string[][] {
@@ -81,6 +83,8 @@ export default function ImportPage() {
     const iAddr = col(["address"]);
     const iCat = col(["category"]);
     const iCity = col(["city"]);
+    const iRating = col(["rating"]);
+    const iReviews = col(["review"]);
 
     if (iName === -1 || iPhone === -1) {
       setStatus(
@@ -88,6 +92,12 @@ export default function ImportPage() {
       );
       return;
     }
+
+    const num = (v: string | undefined): number | null => {
+      if (!v) return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
 
     const result: Row[] = [];
     for (let i = 1; i < parsed.length; i++) {
@@ -98,6 +108,8 @@ export default function ImportPage() {
         address: iAddr !== -1 ? (r[iAddr] ?? "") : "",
         category: iCat !== -1 ? (r[iCat] ?? "") : "",
         city: iCity !== -1 ? (r[iCity] ?? "") : "",
+        rating: iRating !== -1 ? num(r[iRating]) : null,
+        review_count: iReviews !== -1 ? (num(r[iReviews]) !== null ? Math.round(num(r[iReviews]) as number) : null) : null,
       });
     }
     setRows(result);
@@ -192,6 +204,8 @@ export default function ImportPage() {
                       <th className="px-3 py-2 text-left font-medium">Phone</th>
                       <th className="px-3 py-2 text-left font-medium">Category</th>
                       <th className="px-3 py-2 text-left font-medium">City</th>
+                      <th className="px-3 py-2 text-left font-medium">Rating</th>
+                      <th className="px-3 py-2 text-left font-medium">Reviews</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -201,6 +215,8 @@ export default function ImportPage() {
                         <td className="px-3 py-1.5 font-mono text-zinc-400">{r.phone}</td>
                         <td className="px-3 py-1.5 text-zinc-400">{r.category}</td>
                         <td className="px-3 py-1.5 text-zinc-400">{r.city}</td>
+                        <td className="px-3 py-1.5 text-zinc-400">{r.rating ?? "—"}</td>
+                        <td className="px-3 py-1.5 text-zinc-400">{r.review_count ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>

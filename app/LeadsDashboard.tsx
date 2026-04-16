@@ -10,7 +10,14 @@ import {
   STATUS_LABELS,
 } from "@/lib/supabase";
 
-type SortKey = "business_name" | "city" | "category" | "status" | "created_at";
+type SortKey =
+  | "business_name"
+  | "city"
+  | "category"
+  | "status"
+  | "rating"
+  | "review_count"
+  | "created_at";
 
 export function LeadsDashboard() {
   const supabase = useMemo(() => createClient(), []);
@@ -20,6 +27,7 @@ export function LeadsDashboard() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [minRating, setMinRating] = useState<number>(0);
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -65,6 +73,7 @@ export function LeadsDashboard() {
     const arr = leads.filter((l) => {
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (categoryFilter !== "all" && l.category !== categoryFilter) return false;
+      if (minRating > 0 && (l.rating ?? 0) < minRating) return false;
       if (!q) return true;
       return (
         l.business_name.toLowerCase().includes(q) ||
@@ -75,13 +84,15 @@ export function LeadsDashboard() {
       );
     });
     arr.sort((a, b) => {
-      const av = (a[sortKey] ?? "") as string;
-      const bv = (b[sortKey] ?? "") as string;
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      const an = av == null ? (sortDir === "asc" ? Infinity : -Infinity) : av;
+      const bn = bv == null ? (sortDir === "asc" ? Infinity : -Infinity) : bv;
+      const cmp = an < bn ? -1 : an > bn ? 1 : 0;
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [leads, search, statusFilter, categoryFilter, sortKey, sortDir]);
+  }, [leads, search, statusFilter, categoryFilter, minRating, sortKey, sortDir]);
 
   const stats = useMemo(() => {
     const s: Record<LeadStatus, number> = {
@@ -119,13 +130,15 @@ export function LeadsDashboard() {
 
   function exportCSV() {
     const rows = [
-      ["Business Name", "Phone", "Address", "Category", "City", "Status", "Notes"],
+      ["Business Name", "Phone", "Address", "Category", "City", "Rating", "Reviews", "Status", "Notes"],
       ...filtered.map((l) => [
         l.business_name,
         l.phone,
         l.address ?? "",
         l.category ?? "",
         l.city ?? "",
+        l.rating ?? "",
+        l.review_count ?? "",
         STATUS_LABELS[l.status],
         l.notes ?? "",
       ]),
@@ -226,6 +239,17 @@ export function LeadsDashboard() {
               </option>
             ))}
           </select>
+          <select
+            value={minRating}
+            onChange={(e) => setMinRating(Number(e.target.value))}
+            className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm focus:border-zinc-600 focus:outline-none"
+          >
+            <option value={0}>Any rating</option>
+            <option value={3.5}>3.5★+</option>
+            <option value={4}>4.0★+</option>
+            <option value={4.5}>4.5★+</option>
+            <option value={5}>5.0★ only</option>
+          </select>
         </div>
 
         {/* Table */}
@@ -259,6 +283,9 @@ export function LeadsDashboard() {
                     </Th>
                     <Th onClick={() => toggleSort("category")} active={sortKey === "category"} dir={sortDir}>
                       Category
+                    </Th>
+                    <Th onClick={() => toggleSort("rating")} active={sortKey === "rating"} dir={sortDir}>
+                      Rating
                     </Th>
                     <Th onClick={() => toggleSort("status")} active={sortKey === "status"} dir={sortDir}>
                       Status
@@ -348,6 +375,22 @@ function LeadRow({
         </td>
         <td className="px-4 py-2.5 text-zinc-400">{lead.city}</td>
         <td className="px-4 py-2.5 text-zinc-400">{lead.category}</td>
+        <td className="px-4 py-2.5">
+          {lead.rating != null ? (
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-amber-400 font-medium">
+                {lead.rating.toFixed(1)}★
+              </span>
+              {lead.review_count != null && (
+                <span className="text-xs text-zinc-500">
+                  ({lead.review_count})
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="text-zinc-600">—</span>
+          )}
+        </td>
         <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
           <select
             value={lead.status}
@@ -369,7 +412,7 @@ function LeadRow({
       </tr>
       {expanded && (
         <tr className="border-b border-zinc-800 bg-zinc-900/30">
-          <td colSpan={6} className="px-4 py-3">
+          <td colSpan={7} className="px-4 py-3">
             <label className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">
               Notes
             </label>

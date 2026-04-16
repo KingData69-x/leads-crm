@@ -21,6 +21,8 @@ create table leads (
   city text,
   status lead_status not null default 'new',
   notes text,
+  rating numeric,
+  review_count integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

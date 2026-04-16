@@ -27,6 +27,8 @@ export type Lead = {
   city: string;
   status: LeadStatus;
   notes: string | null;
+  rating: number | null;
+  review_count: number | null;
   created_at: string;
   updated_at: string;
 };
