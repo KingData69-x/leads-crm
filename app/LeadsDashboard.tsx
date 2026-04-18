@@ -131,6 +131,8 @@ export function LeadsDashboard() {
       call_later: 0,
       wrong_number: 0,
       not_in_service: 0,
+      owners_not_there: 0,
+      emailed: 0,
       interested: 0,
       not_interested: 0,
       closed: 0,
@@ -217,7 +219,7 @@ export function LeadsDashboard() {
 
       <div className="mx-auto max-w-[1600px] px-6 py-5">
         {/* Stats cards */}
-        <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
+        <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-11">
           {(Object.keys(stats) as LeadStatus[]).map((k) => (
             <button
               key={k}
@@ -448,10 +450,12 @@ function LeadRow({
   onUpdate: (u: Partial<Lead>) => void;
 }) {
   const [notesDraft, setNotesDraft] = useState(lead.notes ?? "");
+  const [prevNotes, setPrevNotes] = useState(lead.notes);
 
-  useEffect(() => {
+  if (lead.notes !== prevNotes) {
+    setPrevNotes(lead.notes);
     setNotesDraft(lead.notes ?? "");
-  }, [lead.notes]);
+  }
 
   return (
     <>

@@ -7,6 +7,8 @@ create type lead_status as enum (
   'call_later',
   'wrong_number',
   'not_in_service',
+  'owners_not_there',
+  'emailed',
   'interested',
   'not_interested',
   'closed'
